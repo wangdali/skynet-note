@@ -91,7 +91,7 @@ _id_to_hex(char * str, uint32_t id) {
 	str[9] = '\0';
 }
 
-// 新建 Context
+// 新建 Context，加载服务模块
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
         // 查询模块数组，找到则直接返回模块结构的指针
@@ -109,7 +109,7 @@ skynet_context_new(const char * name, const char *param) {
 	ctx->mod = mod; // 模块结构的指针
 	ctx->instance = inst; // 实例化 '_create' 函数的指针
 	ctx->ref = 2;
-	ctx->cb = NULL;
+	ctx->cb = NULL; // 返回函数
 	ctx->cb_ud = NULL;
 	ctx->session_id = 0; // 会话编号
 
@@ -147,14 +147,14 @@ skynet_context_new(const char * name, const char *param) {
 // 新会话
 int
 skynet_context_newsession(struct skynet_context *ctx) {
-	// session always be a positive number
+	// session always be a positive number 会话永远是整数
 	int session = (++ctx->session_id) & 0x7fffffff;
 	return session;
 }
 
 void 
 skynet_context_grab(struct skynet_context *ctx) {
-	__sync_add_and_fetch(&ctx->ref,1);
+	__sync_add_and_fetch(&ctx->ref,1); // 先加再返回
 }
 
 // 删除 Context 结构
@@ -295,11 +295,11 @@ skynet_queryname(struct skynet_context * context, const char * name) {
 // 句柄退出
 static void
 handle_exit(struct skynet_context * context, uint32_t handle) {
-	if (handle == 0) {
+	if (handle == 0) { // 如果句柄为0
 		handle = context->handle;
-		skynet_error(context, "KILL self");
+		skynet_error(context, "KILL self"); // 杀死的是自己
 	} else {
-		skynet_error(context, "KILL :%0x", handle);
+		skynet_error(context, "KILL :%0x", handle); // 杀死的是别人
 	}
 	if (G_NODE.monitor_exit) {
 		skynet_send(context,  handle, G_NODE.monitor_exit, PTYPE_CLIENT, 0, NULL, 0);

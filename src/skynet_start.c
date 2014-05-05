@@ -32,6 +32,7 @@ struct worker_parm {
 // 检查是否中断
 #define CHECK_ABORT if (skynet_context_total()==0) break; // 如果上下文总数为0
 
+// 创建线程
 static void
 create_thread(pthread_t *thread, void *(*start_routine) (void *), void *arg) {
 	if (pthread_create(thread,NULL, start_routine, arg)) { // 创建线程
@@ -40,6 +41,7 @@ create_thread(pthread_t *thread, void *(*start_routine) (void *), void *arg) {
 	}
 }
 
+// 唤醒线程
 static void
 wakeup(struct monitor *m, int busy) {
 	if (m->sleep >= m->count - busy) {
@@ -48,11 +50,12 @@ wakeup(struct monitor *m, int busy) {
 	}
 }
 
+// Socket 线程
 static void *
 _socket(void *p) {
 	struct monitor * m = p;
 	for (;;) {
-		int r = skynet_socket_poll(); // Socket池
+		int r = skynet_socket_poll(); // 查看 Socket 消息
 		if (r==0)
 			break;
 		if (r<0) {
@@ -64,6 +67,7 @@ _socket(void *p) {
 	return NULL;
 }
 
+// 释放监视
 static void
 free_monitor(struct monitor *m) {
 	int i;
@@ -77,6 +81,7 @@ free_monitor(struct monitor *m) {
 	skynet_free(m); // 释放监视结构
 }
 
+// 监视 线程
 static void *
 _monitor(void *p) {
 	struct monitor * m = p;
@@ -96,6 +101,7 @@ _monitor(void *p) {
 	return NULL;
 }
 
+// 定时器 线程
 static void *
 _timer(void *p) {
 	struct monitor * m = p;
@@ -112,6 +118,7 @@ _timer(void *p) {
 	return NULL;
 }
 
+// 工作 线程
 static void *
 _worker(void *p) {
 	struct worker_parm *wp = p;
@@ -119,7 +126,7 @@ _worker(void *p) {
 	struct monitor *m = wp->m;
 	struct skynet_monitor *sm = m->m[id];
 	for (;;) {
-		if (skynet_context_message_dispatch(sm)) { // 调度Skynet的上下文消息
+		if (skynet_context_message_dispatch(sm)) { // 调度 Skynet 的上下文消息
 			CHECK_ABORT
 			if (pthread_mutex_lock(&m->mutex) == 0) { // 加锁
 				++ m->sleep;
@@ -137,6 +144,7 @@ _worker(void *p) {
 	return NULL;
 }
 
+// 启动线程
 static void
 _start(int thread) {
 	pthread_t pid[thread+3]; // 线程编号的数组
@@ -178,6 +186,7 @@ _start(int thread) {
 	free_monitor(m); // 释放 监视
 }
 
+// 启动 master
 static int
 _start_master(const char * master) {
 	struct skynet_context *ctx = skynet_context_new("master", master); // 加载 master 服务
@@ -186,6 +195,7 @@ _start_master(const char * master) {
 	return 0;	
 }
 
+// Skynet 启动
 void 
 skynet_start(struct skynet_config * config) {
 	skynet_harbor_init(config->harbor); // 初始化节点

@@ -20,7 +20,7 @@ struct handle_storage {
 
 	uint32_t harbor; // 节点
 	uint32_t handle_index; // 句柄引索
-	int slot_size; // 槽大小
+	int slot_size; // 槽的大小
 	struct skynet_context ** slot;
 	
 	int name_cap;
@@ -39,7 +39,7 @@ skynet_handle_register(struct skynet_context *ctx) {
 	
 	for (;;) {
 		int i;
-		for (i=0;i<s->slot_size;i++) {
+		for (i=0;i<s->slot_size;i++) { // 循环槽的大小次
 			uint32_t handle = (i+s->handle_index) & HANDLE_MASK;
 			int hash = handle & (s->slot_size-1);
 			if (s->slot[hash] == NULL) {
@@ -54,11 +54,11 @@ skynet_handle_register(struct skynet_context *ctx) {
 			}
 		}
 		assert((s->slot_size*2 - 1) <= HANDLE_MASK); // 断言
-		struct skynet_context ** new_slot = skynet_malloc(s->slot_size * 2 * sizeof(struct skynet_context *));
-		memset(new_slot, 0, s->slot_size * 2 * sizeof(struct skynet_context *));
+		struct skynet_context ** new_slot = skynet_malloc(s->slot_size * 2 * sizeof(struct skynet_context *)); // 分配内存
+		memset(new_slot, 0, s->slot_size * 2 * sizeof(struct skynet_context *)); // 清空结构
 		for (i=0;i<s->slot_size;i++) {
 			int hash = skynet_context_handle(s->slot[i]) & (s->slot_size * 2 - 1);
-			assert(new_slot[hash] == NULL);
+			assert(new_slot[hash] == NULL); // 断言
 			new_slot[hash] = s->slot[i];
 		}
 		skynet_free(s->slot); // 释放
@@ -249,6 +249,6 @@ skynet_handle_init(int harbor) {
 
 	H = s; // 设置全局变量
 
-	// Don't need to free H
+	// Don't need to free H ，不需要释放 H
 }
 
