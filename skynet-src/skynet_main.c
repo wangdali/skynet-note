@@ -1,3 +1,8 @@
+/**
+ * @file skynet_main.c
+ * @version 0.1.1
+ * @todo
+ */
 #include "skynet.h"
 
 #include "skynet_imp.h"

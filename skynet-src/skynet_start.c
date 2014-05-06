@@ -1,3 +1,7 @@
+/**
+ * \file skynet_start.c
+ * \brief 这个文件用于初始化和启动 Skynet 的核心服务等。
+ */
 #include "skynet.h"
 #include "skynet_server.h"
 #include "skynet_imp.h"
@@ -16,23 +20,34 @@
 #include <stdlib.h>
 #include <string.h>
 
+/**
+ * \struct monitor
+ * \brief 监视的结构
+ */
 struct monitor {
-	int count; // 线程总数
-	struct skynet_monitor ** m;
-	pthread_cond_t cond; // 线程条件变量
-	pthread_mutex_t mutex; // 线程互斥锁
-	int sleep; // 睡眠
+	int count; /// \var 线程总数
+	struct skynet_monitor ** m; /// \var 结构的指针
+	pthread_cond_t cond; /// \var 线程条件变量
+	pthread_mutex_t mutex; /// \var 线程互斥锁
+	int sleep; /// \var 睡眠
 };
 
+/// \struct worker_parm
+/// \brief
 struct worker_parm {
-	struct monitor *m; // 监视结构
-	int id; // 编号
+	struct monitor *m; /// \var 监视结构
+	int id; /// \var 编号
 };
 
-// 检查是否中断
-#define CHECK_ABORT if (skynet_context_total()==0) break; // 如果上下文总数为0
+/// \def CHECK_ABORT if (skynet_context_total()==0) break;
+/// 检查是否中断
+/// 如果上下文总数为0
+#define CHECK_ABORT if (skynet_context_total()==0) break;
 
-// 创建线程
+/// \fn create_thread
+/// \brief 创建线程
+/// \param[in] pthread_t *thread, void *(*start_routine) (void *), void *arg
+/// \return static void
 static void
 create_thread(pthread_t *thread, void *(*start_routine) (void *), void *arg) {
 	if (pthread_create(thread,NULL, start_routine, arg)) { // 创建线程

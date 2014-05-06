@@ -1,8 +1,6 @@
 .PHONY : all clean 
 
 CC = gcc 
-BINDIR = bin
-LIBDIR = lib
 CFLAGS = -g -Wall -fPIC
 LDFLAGS = -llua -lpthread -ldl -lm #lua调用了标准数学库 -lm
 
@@ -12,31 +10,31 @@ all : \
 	skynet
 
 libnet.a : \
-	net/socket_server.c
+	skynet-src/socket_server.c
 	$(CC) $(CFLAGS) -c $^ -Inet
-	ar rcv $(LIBDIR)/$@ \
+	ar rcv $@ \
 	socket_server.o
-	ranlib $(LIBDIR)/$@
+	ranlib $@
 	rm *.o
 
 skynet : \
-	src/malloc_hook.c \
-	src/skynet_env.c \
-	src/skynet_handle.c \
-	src/skynet_harbor.c \
-	src/skynet_monitor.c \
-	src/skynet_timer.c \
-	src/skynet_module.c \
-	src/skynet_mq.c \
-	src/skynet_error.c \
-	src/skynet_main.c \
-	src/skynet_start.c \
-	src/skynet_server.c \
-	src/skynet_socket.c
+	skynet-src/malloc_hook.c \
+	skynet-src/skynet_env.c \
+	skynet-src/skynet_handle.c \
+	skynet-src/skynet_harbor.c \
+	skynet-src/skynet_monitor.c \
+	skynet-src/skynet_timer.c \
+	skynet-src/skynet_module.c \
+	skynet-src/skynet_mq.c \
+	skynet-src/skynet_error.c \
+	skynet-src/skynet_main.c \
+	skynet-src/skynet_start.c \
+	skynet-src/skynet_server.c \
+	skynet-src/skynet_socket.c
 	$(CC) $(CFLAGS) -c $^ -I./net
-	$(CC) $(CFLAGS) -o $(BINDIR)/$@ \
+	$(CC) $(CFLAGS) -o $@ \
 	*.o lib/libnet.a -I./net $(LDFLAGS)
 	rm *.o
 
 clean :
-	rm *.o lib/*.a bin/skynet
+	rm *.a skynet

@@ -23,7 +23,12 @@
 *.hex
 
 *.~
+.*~
+*~
+.settings/
 .cproject
 .project
 skynet
+doc/html/
+doc/latex/
 
