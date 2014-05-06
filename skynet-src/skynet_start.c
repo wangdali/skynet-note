@@ -174,6 +174,7 @@ _worker(void *p) {
 /// 启动线程
 /// \param[in] thread 线程数
 /// \return static void
+static void
 _start(int thread) {
 	pthread_t pid[thread+3]; // 线程编号的数组
 

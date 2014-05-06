@@ -30,11 +30,12 @@ skynet : \
 	skynet-src/skynet_main.c \
 	skynet-src/skynet_start.c \
 	skynet-src/skynet_server.c \
-	skynet-src/skynet_socket.c
-	$(CC) $(CFLAGS) -c $^ -I./net
+	skynet-src/skynet_socket.c \
+	skynet-src/socket_server.c
+	$(CC) $(CFLAGS) -c $^
 	$(CC) $(CFLAGS) -o $@ \
-	*.o lib/libnet.a -I./net $(LDFLAGS)
+	*.o $(LDFLAGS)
 	rm *.o
 
 clean :
-	rm *.a skynet
+	rm *.o *.a skynet
