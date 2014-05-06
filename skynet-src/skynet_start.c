@@ -1,7 +1,7 @@
-/**
- * \file skynet_start.c
- * \brief 这个文件用于初始化和启动 Skynet 的核心服务等。
- */
+///
+/// \file skynet_start.c
+/// \brief 这个文件用于初始化和启动 Skynet 的核心服务等。
+///
 #include "skynet.h"
 #include "skynet_server.h"
 #include "skynet_imp.h"
@@ -20,33 +20,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-/**
- * \struct monitor
- * \brief 监视的结构
- */
+/// 监视的结构
 struct monitor {
-	int count; /// \var 线程总数
-	struct skynet_monitor ** m; /// \var 结构的指针
-	pthread_cond_t cond; /// \var 线程条件变量
-	pthread_mutex_t mutex; /// \var 线程互斥锁
-	int sleep; /// \var 睡眠
+	int count; ///< 线程总数
+	struct skynet_monitor ** m; ///< 结构的指针
+	pthread_cond_t cond; ///< 线程条件变量
+	pthread_mutex_t mutex; ///< 线程互斥锁
+	int sleep; ///< 睡眠
 };
 
-/// \struct worker_parm
-/// \brief
+
+///
 struct worker_parm {
 	struct monitor *m; /// \var 监视结构
 	int id; /// \var 编号
 };
 
-/// \def CHECK_ABORT if (skynet_context_total()==0) break;
 /// 检查是否中断
+///
 /// 如果上下文总数为0
 #define CHECK_ABORT if (skynet_context_total()==0) break;
 
-/// \fn create_thread
-/// \brief 创建线程
-/// \param[in] pthread_t *thread, void *(*start_routine) (void *), void *arg
+
+/// 创建线程
+/// \param[in] *thread 线程结构
+/// \param[in] (void *)
+/// \param[in] *arg 启动线程的参数
 /// \return static void
 static void
 create_thread(pthread_t *thread, void *(*start_routine) (void *), void *arg) {
@@ -56,7 +55,10 @@ create_thread(pthread_t *thread, void *(*start_routine) (void *), void *arg) {
 	}
 }
 
-// 唤醒线程
+/// 唤醒线程
+/// \param[in] monitor *m
+/// \param[in] busy
+/// \return static void
 static void
 wakeup(struct monitor *m, int busy) {
 	if (m->sleep >= m->count - busy) {
@@ -65,7 +67,9 @@ wakeup(struct monitor *m, int busy) {
 	}
 }
 
-// Socket 线程
+/// Socket 线程
+/// \param[in] *p
+/// \return static void
 static void *
 _socket(void *p) {
 	struct monitor * m = p;
@@ -82,7 +86,9 @@ _socket(void *p) {
 	return NULL;
 }
 
-// 释放监视
+/// 释放监视
+/// \param[in] monitor *m
+/// \return static void
 static void
 free_monitor(struct monitor *m) {
 	int i;
@@ -96,7 +102,9 @@ free_monitor(struct monitor *m) {
 	skynet_free(m); // 释放监视结构
 }
 
-// 监视 线程
+/// 监视 线程
+/// \param[in] *p
+/// \return static void *
 static void *
 _monitor(void *p) {
 	struct monitor * m = p;
@@ -116,7 +124,9 @@ _monitor(void *p) {
 	return NULL;
 }
 
-// 定时器 线程
+/// 定时器 线程
+/// \param[in] *p
+/// \return static void *
 static void *
 _timer(void *p) {
 	struct monitor * m = p;
@@ -133,7 +143,9 @@ _timer(void *p) {
 	return NULL;
 }
 
-// 工作 线程
+/// 工作 线程
+/// \param[in] *p
+/// \return static void *
 static void *
 _worker(void *p) {
 	struct worker_parm *wp = p;
@@ -159,8 +171,9 @@ _worker(void *p) {
 	return NULL;
 }
 
-// 启动线程
-static void
+/// 启动线程
+/// \param[in] thread 线程数
+/// \return static void
 _start(int thread) {
 	pthread_t pid[thread+3]; // 线程编号的数组
 
@@ -201,7 +214,11 @@ _start(int thread) {
 	free_monitor(m); // 释放 监视
 }
 
-// 启动 master
+/// 启动 master
+/// \param[in] master 主服务的IP地址和端口字符串
+/// \return static int
+/// \retval 0 成功
+/// \retval 1 失败
 static int
 _start_master(const char * master) {
 	struct skynet_context *ctx = skynet_context_new("master", master); // 加载 master 服务
@@ -210,7 +227,10 @@ _start_master(const char * master) {
 	return 0;	
 }
 
-// Skynet 启动
+
+/// Skynet 启动
+/// \param[in] *config 配置文件名的字符串
+/// \return void
 void 
 skynet_start(struct skynet_config * config) {
 	skynet_harbor_init(config->harbor); // 初始化节点

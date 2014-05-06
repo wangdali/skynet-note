@@ -1,3 +1,7 @@
+///
+/// \file skynet_handle.c
+/// \brief 句柄，每个服务的编号
+///
 #include "skynet.h"
 
 #include "skynet_handle.h"
@@ -11,26 +15,28 @@
 #define DEFAULT_SLOT_SIZE 4
 
 struct handle_name {
-	char * name; // 名字
-	uint32_t handle; // 句柄
+	char * name; ///< 名字
+	uint32_t handle; ///< 句柄
 };
 
 struct handle_storage {
-	struct rwlock lock; // 锁
+	struct rwlock lock; ///< 锁
 
-	uint32_t harbor; // 节点
-	uint32_t handle_index; // 句柄引索
-	int slot_size; // 槽的大小
+	uint32_t harbor; ///< 节点
+	uint32_t handle_index; ///< 句柄引索
+	int slot_size; ///< 槽的大小
 	struct skynet_context ** slot;
 	
 	int name_cap;
 	int name_count;
-	struct handle_name *name; // 句柄的名字
+	struct handle_name *name; ///< 句柄的名字
 };
 
-static struct handle_storage *H = NULL; // 全局结构变量的指针
+static struct handle_storage *H = NULL; ///< 全局结构变量的指针
 
-// 注册句柄
+/// 注册句柄
+/// \param[in] *ctx
+/// \return uint32_t
 uint32_t
 skynet_handle_register(struct skynet_context *ctx) {
 	struct handle_storage *s = H; // 设置为全局变量
@@ -67,7 +73,9 @@ skynet_handle_register(struct skynet_context *ctx) {
 	}
 }
 
-// 收回句柄
+/// 收回句柄
+/// \param[in] handle
+/// \return void
 void
 skynet_handle_retire(uint32_t handle) {
 	struct handle_storage *s = H; // 全局变量
@@ -97,7 +105,8 @@ skynet_handle_retire(uint32_t handle) {
 	rwlock_wunlock(&s->lock); // 解锁
 }
 
-// 回收所有句柄
+/// 回收所有句柄
+/// return void
 void 
 skynet_handle_retireall() {
 	struct handle_storage *s = H; // 全局变量
@@ -118,6 +127,9 @@ skynet_handle_retireall() {
 	}
 }
 
+///
+/// \param[in] handle
+/// \return struct skynet_context *
 struct skynet_context * 
 skynet_handle_grab(uint32_t handle) {
 	struct handle_storage *s = H;
@@ -137,7 +149,9 @@ skynet_handle_grab(uint32_t handle) {
 	return result;
 }
 
-// 根据名字查找句柄
+/// 根据名字查找句柄
+/// \param[in] *name
+/// \return uint32_t
 uint32_t 
 skynet_handle_findname(const char * name) {
 	struct handle_storage *s = H; // 全局变量
@@ -168,7 +182,12 @@ skynet_handle_findname(const char * name) {
 	return handle;
 }
 
-// 在之前插入名字
+/// 在之前插入名字
+/// \param[in] *s
+/// \param[in] *name
+/// \param[in] handle
+/// \param[in] before
+/// \return static void
 static void
 _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int before) {
 	if (s->name_count >= s->name_cap) {
@@ -194,7 +213,10 @@ _insert_name_before(struct handle_storage *s, char *name, uint32_t handle, int b
 	s->name_count ++;
 }
 
-// 插入名字
+/// 插入名字
+/// \param[in] *s
+/// \param[in] *name
+/// \param[in] handle
 static const char *
 _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	int begin = 0;
@@ -219,6 +241,10 @@ _insert_name(struct handle_storage *s, const char * name, uint32_t handle) {
 	return result;
 }
 
+///
+/// \param[in] handle
+/// \param[in] *name
+/// \return const char *
 const char * 
 skynet_handle_namehandle(uint32_t handle, const char *name) {
 	rwlock_wlock(&H->lock);
@@ -230,7 +256,9 @@ skynet_handle_namehandle(uint32_t handle, const char *name) {
 	return ret;
 }
 
-// 初始化句柄
+/// 初始化句柄
+/// \param[in] harbor
+/// \return void
 void 
 skynet_handle_init(int harbor) {
 	assert(H==NULL); // 断言

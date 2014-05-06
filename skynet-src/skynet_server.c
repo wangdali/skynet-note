@@ -1,3 +1,7 @@
+///
+/// \file skynet_server.c
+/// \brief Skynet核心服务
+///
 #include "skynet.h"
 
 #include "skynet_server.h"
@@ -31,22 +35,24 @@
 
 #endif
 
+/// Skynet 上下文结构
 struct skynet_context {
-	void * instance; // 实例化
-	struct skynet_module * mod; // 模块的指针
-	uint32_t handle; // 句柄
-	int ref;
-	char result[32];
-	void * cb_ud;
-	skynet_cb cb; // 模块的返回函数
-	int session_id; // 会话编号
-	struct message_queue *queue; // 消息队列
-	bool init; // 是否成功实例化 ‘_init’ 函数
-	bool endless;
+	void * instance; ///< 实例化
+	struct skynet_module * mod; ///< 模块的指针
+	uint32_t handle; ///< 句柄
+	int ref; ///<
+	char result[32]; ///<
+	void * cb_ud; ///<
+	skynet_cb cb; ///< 模块的返回函数
+	int session_id; ///< 会话编号
+	struct message_queue *queue; ///< 消息队列
+	bool init; ///< 是否成功实例化
+	bool endless; ///<
 
 	CHECKCALLING_DECL
 };
 
+/// Skynet 节点
 struct skynet_node {
 	int total;
 	uint32_t monitor_exit;
@@ -55,31 +61,39 @@ struct skynet_node {
 static struct skynet_node G_NODE = { 0,0 };
 static __thread uint32_t handle_tls = 0xffffffff;
 
-// 获得 Context 总数
+/// 获得 Context 总数
+/// \return int
 int 
 skynet_context_total() {
 	return G_NODE.total;
 }
 
-// Context数 +1
+/// Context数 +1
+/// \return static void
 static void
 _context_inc() {
 	__sync_fetch_and_add(&G_NODE.total,1);
 }
 
-// Context数 -1
+/// Context数 -1
+/// \return static void
 static void
 _context_dec() {
 	__sync_fetch_and_sub(&G_NODE.total,1);
 }
 
-// 获得当前的句柄
+/// 获得当前的句柄
+/// \param[in] void
+/// \return uint32_t
 uint32_t 
 skynet_current_handle(void) {
 	return handle_tls;
 }
 
-// 编号转十六进制字符串
+/// 编号转十六进制字符串
+/// \param[out] *str 字符串
+/// \param[in] id 服务编号
+/// \return static void
 static void
 _id_to_hex(char * str, uint32_t id) {
 	int i;
@@ -91,7 +105,10 @@ _id_to_hex(char * str, uint32_t id) {
 	str[9] = '\0';
 }
 
-// 新建 Context，加载服务模块
+/// 新建 Context，加载服务模块
+/// \param[in] *name 模块的名称
+/// \param[in] *param 传递给模块的参数
+/// \return struct skynet_context *
 struct skynet_context * 
 skynet_context_new(const char * name, const char *param) {
         // 查询模块数组，找到则直接返回模块结构的指针
@@ -144,7 +161,9 @@ skynet_context_new(const char * name, const char *param) {
 	}
 }
 
-// 新会话
+/// 新会话
+/// \param[in] *ctx
+/// \return int 新的会话编号
 int
 skynet_context_newsession(struct skynet_context *ctx) {
 	// session always be a positive number 会话永远是整数
@@ -152,12 +171,17 @@ skynet_context_newsession(struct skynet_context *ctx) {
 	return session;
 }
 
+///
+/// \param[in] *ctx
+/// \return void
 void 
 skynet_context_grab(struct skynet_context *ctx) {
 	__sync_add_and_fetch(&ctx->ref,1); // 先加再返回
 }
 
-// 删除 Context 结构
+/// 删除 Context 结构
+/// \param[in] *ctx
+/// \return static void
 static void 
 _delete_context(struct skynet_context *ctx) {
 	skynet_module_instance_release(ctx->mod, ctx->instance); // 执行模块中的 '_release' 函数
@@ -166,7 +190,9 @@ _delete_context(struct skynet_context *ctx) {
 	_context_dec(); // Context 数 -1
 }
 
-// 释放 Context 结构
+/// 释放 Context 结构
+/// \param[in] *ctx
+/// \return struct skynet_context *
 struct skynet_context * 
 skynet_context_release(struct skynet_context *ctx) {
 	if (__sync_sub_and_fetch(&ctx->ref,1) == 0) {
@@ -176,7 +202,10 @@ skynet_context_release(struct skynet_context *ctx) {
 	return ctx; // 返回结构
 }
 
-// 压入 Context 结构到消息队列
+/// 压入 Context 结构到消息队列
+/// \param[in] handle 句柄
+/// \param[in] *message 消息结构
+/// \return int
 int
 skynet_context_push(uint32_t handle, struct skynet_message *message) {
 	struct skynet_context * ctx = skynet_handle_grab(handle);
@@ -189,6 +218,9 @@ skynet_context_push(uint32_t handle, struct skynet_message *message) {
 	return 0;
 }
 
+///
+/// \param[in] handle
+/// \return void
 void 
 skynet_context_endless(uint32_t handle) {
 	struct skynet_context * ctx = skynet_handle_grab(handle);
@@ -199,6 +231,11 @@ skynet_context_endless(uint32_t handle) {
 	skynet_context_release(ctx);
 }
 
+///
+/// \param[in] *ctx
+/// \param[in] handle
+/// \param[in] harbor
+/// \return int
 int 
 skynet_isremote(struct skynet_context * ctx, uint32_t handle, int * harbor) {
 	int ret = skynet_harbor_message_isremote(handle);
@@ -208,7 +245,10 @@ skynet_isremote(struct skynet_context * ctx, uint32_t handle, int * harbor) {
 	return ret;
 }
 
-// 消息调度
+/// 消息调度
+/// \param[in] *ctx
+/// \param[in] *msg
+/// \return static void
 static void
 _dispatch_message(struct skynet_context *ctx, struct skynet_message *msg) {
 	assert(ctx->init); // 断言
@@ -225,7 +265,9 @@ _dispatch_message(struct skynet_context *ctx, struct skynet_message *msg) {
 	CHECKCALLING_END(ctx)
 }
 
-// 调度 Context 消息
+/// 调度 Context 消息
+/// \param[in] *sm
+/// \return int
 int
 skynet_context_message_dispatch(struct skynet_monitor *sm) {
 	struct message_queue * q = skynet_globalmq_pop(); // 从全局队列中弹出消息队列
@@ -267,7 +309,10 @@ skynet_context_message_dispatch(struct skynet_monitor *sm) {
 	return 0;
 }
 
-// 复制名称
+/// 复制名称
+/// \param[in] name
+/// \param[in] *addr
+/// \return static void
 static void
 _copy_name(char name[GLOBALNAME_LENGTH], const char * addr) {
 	int i;
@@ -279,7 +324,10 @@ _copy_name(char name[GLOBALNAME_LENGTH], const char * addr) {
 	}
 }
 
-// 查询名字
+/// 查询名字
+/// \param[in] *context
+/// \param[in] *name
+/// \return uint32_t
 uint32_t 
 skynet_queryname(struct skynet_context * context, const char * name) {
 	switch(name[0]) { // 取名字的地一个字符
@@ -292,7 +340,10 @@ skynet_queryname(struct skynet_context * context, const char * name) {
 	return 0;
 }
 
-// 句柄退出
+/// 句柄退出
+/// \param[in] context
+/// \param[in] handle
+/// \return static void
 static void
 handle_exit(struct skynet_context * context, uint32_t handle) {
 	if (handle == 0) { // 如果句柄为0
@@ -307,7 +358,11 @@ handle_exit(struct skynet_context * context, uint32_t handle) {
 	skynet_handle_retire(handle);
 }
 
-// Skynet 命令
+/// Skynet 命令
+/// \param[in] *context
+/// \param[in] *cmd
+/// \param[in] *param
+/// \return const char *
 const char * 
 skynet_command(struct skynet_context * context, const char * cmd , const char * param) {
         // 超时
@@ -516,6 +571,13 @@ skynet_command(struct skynet_context * context, const char * cmd , const char * 
 	return NULL;
 }
 
+///
+/// \param[in] *context
+/// \param[in] type
+/// \param[in] *session
+/// \param[in] **data
+/// \param[in] *sz
+/// \return static void
 static void
 _filter_args(struct skynet_context * context, int type, int *session, void ** data, size_t * sz) {
 	int needcopy = !(type & PTYPE_TAG_DONTCOPY);
@@ -538,7 +600,15 @@ _filter_args(struct skynet_context * context, int type, int *session, void ** da
 	*sz |= type << HANDLE_REMOTE_SHIFT;
 }
 
-// 发送消息给服务
+/// 发送消息给服务
+/// \param[in] *context
+/// \param[in] source
+/// \param[in] destination
+/// \param[in] type
+/// \param[in] session
+/// \param[in] *data
+/// \param[in] sz
+/// \return int
 int
 skynet_send(struct skynet_context * context, uint32_t source, uint32_t destination , int type, int session, void * data, size_t sz) {
 	_filter_args(context, type, &session, (void **)&data, &sz);
@@ -572,7 +642,14 @@ skynet_send(struct skynet_context * context, uint32_t source, uint32_t destinati
 	return session;
 }
 
-// 根据名称发生消息给服务
+/// 根据名称发生消息给服务
+/// \param[in] *context
+/// \param[in] *addr
+/// \param[in] type
+/// \param[in] session
+/// \param[in] *data
+/// \param[in] sz
+/// \return int
 int
 skynet_sendname(struct skynet_context * context, const char * addr , int type, int session, void * data, size_t sz) {
 	uint32_t source = context->handle;
@@ -604,25 +681,42 @@ skynet_sendname(struct skynet_context * context, const char * addr , int type, i
 	return skynet_send(context, source, des, type, session, data, sz);
 }
 
-// 获得 Context 句柄
+/// 获得 Context 句柄
+/// \param[in] *ctx
+/// \return uint32_t
 uint32_t 
 skynet_context_handle(struct skynet_context *ctx) {
 	return ctx->handle;
 }
 
-// Context 初始化
+/// Context 初始化
+/// \param[in] *ctx
+/// \param[in] handle
+/// \return void
 void 
 skynet_context_init(struct skynet_context *ctx, uint32_t handle) {
 	ctx->handle = handle;
 }
 
-// 设置服务模块的返回函数
+/// 设置服务模块的返回函数
+/// \param[in] *context
+/// \param[in] *ud
+/// \param[in] cb
+/// \return void
 void 
 skynet_callback(struct skynet_context * context, void *ud, skynet_cb cb) {
 	context->cb = cb;
 	context->cb_ud = ud;
 }
 
+///
+/// \param[in] *ctx
+/// \param[in] *msg
+/// \param[in] sz
+/// \param[in] source
+/// \param[in] type
+/// \param[in] session
+/// \return void
 void
 skynet_context_send(struct skynet_context * ctx, void * msg, size_t sz, uint32_t source, int type, int session) {
 	struct skynet_message smsg;

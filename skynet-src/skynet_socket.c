@@ -1,3 +1,7 @@
+///
+/// \file skynet_socket.c
+/// \brief Socket 封装
+///
 #include "skynet.h"
 
 #include "skynet_socket.h"
@@ -11,21 +15,24 @@
 #include <string.h>
 #include <stdbool.h>
 
-static struct socket_server * SOCKET_SERVER = NULL; // 全局变量
+static struct socket_server * SOCKET_SERVER = NULL; ///< 全局变量
 
-// 初始化 Socket
+/// 初始化 Socket
+/// \return void
 void 
 skynet_socket_init() {
 	SOCKET_SERVER = socket_server_create(); // 创建 Socket Server
 }
 
-// 退出 Socket
+/// 退出 Socket
+/// \return void
 void
 skynet_socket_exit() {
 	socket_server_exit(SOCKET_SERVER); // 退出 Socket Server
 }
 
-// 释放 Socket
+/// 释放 Socket
+/// \return void
 void
 skynet_socket_free() {
 	socket_server_release(SOCKET_SERVER); // 释放 Socket Server
@@ -33,7 +40,11 @@ skynet_socket_free() {
 }
 
 // mainloop thread
-// 转发消息
+/// 转发消息
+/// \param[in] type 类型
+/// \param[in] padding 是否正在填充
+/// \param[in] *result
+/// \return static void
 static void
 forward_message(int type, bool padding, struct socket_message * result) {
 	struct skynet_socket_message *sm; // Socket 消息
@@ -72,6 +83,8 @@ forward_message(int type, bool padding, struct socket_message * result) {
 	}
 }
 
+/// 检查 Socket
+/// \return int
 int 
 skynet_socket_poll() {
 	struct socket_server *ss = SOCKET_SERVER; // 设为全局变量
@@ -107,7 +120,12 @@ skynet_socket_poll() {
 	return 1;
 }
 
-// 发送 Socket 数据
+/// 发送 Socket 数据
+/// \param[in] *ctx Skynet上下文结构
+/// \param[in] id
+/// \param[in] *buffer 数据缓冲区
+/// \param[in] sz 数据的大小
+/// \return int
 int
 skynet_socket_send(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	int64_t wsz = socket_server_send(SOCKET_SERVER, id, buffer, sz); // 发送数据
@@ -123,48 +141,75 @@ skynet_socket_send(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	return 0;
 }
 
-// 低优先级发送 Socket 数据
+/// 低优先级发送 Socket 数据
+/// \param[in] *ctx Skynet上下文结构
+/// \param[in] id
+/// \param[in] *buffer 数据缓冲区
+/// \param[in] sz 数据的大小
+/// \return void
 void
 skynet_socket_send_lowpriority(struct skynet_context *ctx, int id, void *buffer, int sz) {
 	socket_server_send_lowpriority(SOCKET_SERVER, id, buffer, sz);
 }
 
-// 监听 Socket
+/// 监听 Socket
+/// \param[in] *ctx
+/// \param[in] *host
+/// \param[in] port
+/// \param[in] backlog
+/// \return int
 int 
 skynet_socket_listen(struct skynet_context *ctx, const char *host, int port, int backlog) {
 	uint32_t source = skynet_context_handle(ctx);
 	return socket_server_listen(SOCKET_SERVER, source, host, port, backlog);
 }
 
-// Socket 连接
+/// Socket 连接
+/// \param[in] *ctx
+/// \param[in] *host
+/// \param[in] port
+/// \return int
 int 
 skynet_socket_connect(struct skynet_context *ctx, const char *host, int port) {
 	uint32_t source = skynet_context_handle(ctx);
 	return socket_server_connect(SOCKET_SERVER, source, host, port);
 }
 
-// 阻塞式 Socket 连接
+/// 阻塞式 Socket 连接
+/// \param[in] *ctx
+/// \param[in] *host
+/// \param[in] port
+/// \return int
 int 
 skynet_socket_block_connect(struct skynet_context *ctx, const char *host, int port) {
 	uint32_t source = skynet_context_handle(ctx);
 	return socket_server_block_connect(SOCKET_SERVER, source, host, port);
 }
 
-// 绑定事件
+/// 绑定事件
+/// \param[in] *ctx
+/// \param[in] fd
+/// \return int
 int 
 skynet_socket_bind(struct skynet_context *ctx, int fd) {
 	uint32_t source = skynet_context_handle(ctx);
 	return socket_server_bind(SOCKET_SERVER, source, fd);
 }
 
-// 关闭 Socket
+/// 关闭 Socket
+/// \param[in] *ctx
+/// \param[in] id
+/// \return void
 void 
 skynet_socket_close(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);
 	socket_server_close(SOCKET_SERVER, source, id);
 }
 
-// 启动 Socket
+/// 启动 Socket
+/// \param[in] *ctx
+/// \param[in] id
+/// \return voids
 void 
 skynet_socket_start(struct skynet_context *ctx, int id) {
 	uint32_t source = skynet_context_handle(ctx);

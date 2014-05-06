@@ -1,3 +1,7 @@
+///
+/// \file skynet_module.c
+/// \brief 加载动态链接库
+///
 #include "skynet.h"
 
 #include "skynet_module.h"
@@ -9,18 +13,22 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define MAX_MODULE_TYPE 32
+#define MAX_MODULE_TYPE 32 ///< 最大模块的类型
 
+/// 模块的结构
 struct modules {
-	int count; // 模块的总数
-	int lock; // 锁
-	const char * path; // 模块的路径
-	struct skynet_module m[MAX_MODULE_TYPE]; // 模块的数组
+	int count; ///< 模块的总数
+	int lock; ///< 锁
+	const char * path; ///< 模块的路径
+	struct skynet_module m[MAX_MODULE_TYPE]; ///< 模块的数组
 };
 
-static struct modules * M = NULL; // 模块结构的全局指针变量
+static struct modules * M = NULL; ///< 模块结构的全局指针变量
 
-// 尝试打开模块
+/// 尝试打开模块
+/// \param[in] *m 模块的结构
+/// \param[in] *name 模块的名称
+/// \return static void *
 static void *
 _try_open(struct modules *m, const char * name) {
 	const char *l;
@@ -62,7 +70,9 @@ _try_open(struct modules *m, const char * name) {
 	return dl; // 返回打开模块的指针变量
 }
 
-// 根据名称查询模块数组，返回模块结构的指针
+/// 根据名称查询模块数组，返回模块结构的指针
+/// \param[in] *name 模块名称
+/// \return static struct skynet_module *
 static struct skynet_module * 
 _query(const char * name) {
 	int i;
@@ -74,7 +84,9 @@ _query(const char * name) {
 	return NULL;
 }
 
-// 打开函数
+/// 打开函数
+/// \param[in] *mod 模块的结构
+/// \return static int
 static int
 _open_sym(struct skynet_module *mod) {
 	size_t name_size = strlen(mod->name); // 模块名称的长度
@@ -90,7 +102,9 @@ _open_sym(struct skynet_module *mod) {
 	return mod->init == NULL; // 判断是否为空，返回真或假
 }
 
-// 查询模块
+/// 查询模块
+/// \param[in] *name 模块的名称
+/// \return struct skynet_module *
 struct skynet_module * 
 skynet_module_query(const char * name) {
 	struct skynet_module * result = _query(name); // 检查模块数组是否有这个模块
@@ -121,7 +135,9 @@ skynet_module_query(const char * name) {
 	return result; // 返回模块的结构指针
 }
 
-// 插入模块结构到模块数组中
+/// 插入模块结构到模块数组中
+/// \param[in] *mod 模块的结构
+/// \return void
 void 
 skynet_module_insert(struct skynet_module *mod) {
 	while(__sync_lock_test_and_set(&M->lock,1)) {} // 尝试锁住模块数组
@@ -134,7 +150,9 @@ skynet_module_insert(struct skynet_module *mod) {
 	__sync_lock_release(&M->lock); // 解锁
 }
 
-// 实例化创建函数
+/// 实例化创建函数
+/// \param[in] *m
+/// \return void *
 void * 
 skynet_module_instance_create(struct skynet_module *m) {
 	if (m->create) { // 如果存在这个指针
@@ -144,13 +162,23 @@ skynet_module_instance_create(struct skynet_module *m) {
 	}
 }
 
-// 实例化初始化函数
+/// 实例化初始化函数
+/// \param[in] *m
+/// \param[in] *inst
+/// \param[in] *ctx
+/// \param[in] *parm
+/// \return int
+/// \retval 0 成功
+/// \retval 1 失败
 int
 skynet_module_instance_init(struct skynet_module *m, void * inst, struct skynet_context *ctx, const char * parm) {
 	return m->init(inst, ctx, parm); // 执行模块中的初始化函数
 }
 
-// 实例化释放函数
+/// 实例化释放函数
+/// \param[in] *m
+/// \param[in] *inst
+/// \return void
 void 
 skynet_module_instance_release(struct skynet_module *m, void *inst) {
 	if (m->release) { // 如果存在这个指针
@@ -158,7 +186,9 @@ skynet_module_instance_release(struct skynet_module *m, void *inst) {
 	}
 }
 
-// 模块初始化
+/// 模块初始化
+/// \param[in] *path
+/// \return void
 void 
 skynet_module_init(const char *path) {
 	struct modules *m = skynet_malloc(sizeof(*m)); // 分配模块结构的内存

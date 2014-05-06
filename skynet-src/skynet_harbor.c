@@ -1,3 +1,7 @@
+///
+/// \file skynet_harbor.c
+/// \brief 节点服务
+///
 #include "skynet.h"
 #include "skynet_harbor.h"
 #include "skynet_server.h"
@@ -6,10 +10,14 @@
 #include <stdio.h>
 #include <assert.h>
 
-static struct skynet_context * REMOTE = 0; // 远程节点的 Context 结构指针
-static unsigned int HARBOR = 0; // 节点的全局变量
+static struct skynet_context * REMOTE = 0; ///< 远程节点的 Context 结构指针
+static unsigned int HARBOR = 0; ///< 节点的全局变量
 
-// 节点发送
+/// 节点发送
+/// \param[in] *rmsg
+/// \param[in] source
+/// \param[in] session
+/// \return void
 void 
 skynet_harbor_send(struct remote_message *rmsg, uint32_t source, int session) {
 	int type = rmsg->sz >> HANDLE_REMOTE_SHIFT;
@@ -20,7 +28,9 @@ skynet_harbor_send(struct remote_message *rmsg, uint32_t source, int session) {
 	skynet_context_send(REMOTE, rmsg, sizeof(*rmsg) , source, type , session);
 }
 
-// 节点注册
+/// 节点注册
+/// \param[in] *rname
+/// \return void
 void 
 skynet_harbor_register(struct remote_name *rname) {
 	int i;
@@ -38,20 +48,27 @@ skynet_harbor_register(struct remote_name *rname) {
 	skynet_context_send(REMOTE, rname, sizeof(*rname), 0, PTYPE_SYSTEM , 0);
 }
 
-// 节点消息是否为远程
+/// 节点消息是否为远程
+/// \param[in] handle
+/// \return int
 int 
 skynet_harbor_message_isremote(uint32_t handle) {
 	int h = (handle & ~HANDLE_MASK);
 	return h != HARBOR && h !=0;
 }
 
-// 初始化节点
+/// 初始化节点
+/// \param[in] harbor
+/// \return void
 void
 skynet_harbor_init(int harbor) {
 	HARBOR = (unsigned int)harbor << HANDLE_REMOTE_SHIFT; // 左移24位，设置节点编号
 }
 
-// 启动节点
+/// 启动节点
+/// \param[in] *master
+/// \param[in] *local
+/// \return int
 int
 skynet_harbor_start(const char * master, const char *local) {
 	size_t sz = strlen(master) + strlen(local) + 32; // 计算字符串长度

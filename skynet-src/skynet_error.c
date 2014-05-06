@@ -1,3 +1,7 @@
+///
+/// \file skynet_error.c
+/// \brief 错误处理
+///
 #include "skynet.h"
 #include "skynet_handle.h"
 #include "skynet_mq.h"
@@ -8,8 +12,13 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LOG_MESSAGE_SIZE 256
+#define LOG_MESSAGE_SIZE 256 ///< 最大日志消息的长度
 
+/// 错误处理
+/// \param[in] *context
+/// \param[in] *msg
+/// \param[in] ...
+/// \return void
 void 
 skynet_error(struct skynet_context * context, const char *msg, ...) {
 	static uint32_t logger = 0;

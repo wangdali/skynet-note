@@ -1,3 +1,8 @@
+///
+/// \file socket_server.c
+/// \brief Socket 服务
+///
+
 //#include "skynet.h"
 
 #include "socket_server.h"
@@ -34,6 +39,7 @@
 #define PRIORITY_HIGH 0
 #define PRIORITY_LOW 1
 
+/// 写缓冲的结构
 struct write_buffer {
 	struct write_buffer * next;
 	char *ptr;
@@ -41,11 +47,13 @@ struct write_buffer {
 	void *buffer;
 };
 
+/// 写缓冲列表
 struct wb_list {
 	struct write_buffer * head;
 	struct write_buffer * tail;
 };
 
+/// Socket结构
 struct socket {
 	int fd;
 	int id;
@@ -57,6 +65,7 @@ struct socket {
 	struct wb_list low;
 };
 
+///
 struct socket_server {
 	int recvctrl_fd;
 	int sendctrl_fd;

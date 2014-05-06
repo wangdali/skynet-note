@@ -1,3 +1,7 @@
+///
+/// \file skynet_timer.c
+/// \brief 定时器
+///
 #include "skynet.h"
 
 #include "skynet_timer.h"
@@ -14,7 +18,7 @@
 #include <sys/time.h>
 #endif
 
-typedef void (*timer_execute_func)(void *ud,void *arg); // 函数指针类型
+typedef void (*timer_execute_func)(void *ud,void *arg); ///< 函数指针类型
 
 #define TIME_NEAR_SHIFT 8
 #define TIME_NEAR (1 << TIME_NEAR_SHIFT)
@@ -23,37 +27,39 @@ typedef void (*timer_execute_func)(void *ud,void *arg); // 函数指针类型
 #define TIME_NEAR_MASK (TIME_NEAR-1)
 #define TIME_LEVEL_MASK (TIME_LEVEL-1)
 
-// 定时器事件
+/// 定时器事件
 struct timer_event {
-	uint32_t handle; // 句柄
-	int session; // 会话
+	uint32_t handle; ///< 句柄
+	int session; ///< 会话
 };
 
-// 定时器节点
+/// 定时器节点
 struct timer_node {
-	struct timer_node *next; // 下一个定时器节点
-	int expire; // 到期时间
+	struct timer_node *next; ///< 下一个定时器节点
+	int expire; ///< 到期时间
 };
 
-// 链表
+/// 链表
 struct link_list {
-	struct timer_node head; // 链表头
-	struct timer_node *tail; // 链表尾
+	struct timer_node head; ///< 链表头
+	struct timer_node *tail; ///< 链表尾
 };
 
-// 定时器
+///< 定时器
 struct timer {
 	struct link_list near[TIME_NEAR];
 	struct link_list t[4][TIME_LEVEL-1];
-	int lock; // 锁
-	int time; // 时间
-	uint32_t current; //当前时间
-	uint32_t starttime; // 启动时间
+	int lock; ///< 锁
+	int time; ///< 时间
+	uint32_t current; ///< 当前时间
+	uint32_t starttime; ///< 启动时间
 };
 
-static struct timer * TI = NULL; // 全局定时器指针变量
+static struct timer * TI = NULL; ///< 全局定时器指针变量
 
-// 清除链表
+/// 清除链表
+/// \param[in] *list
+/// \return static inline struct timer_node *
 static inline struct timer_node *
 link_clear(struct link_list *list)
 {
@@ -64,6 +70,10 @@ link_clear(struct link_list *list)
 	return ret; // 返回链表头的下一个节点
 }
 
+///
+/// \param[in] *list
+/// \param[in] *node
+/// \return static inline void
 static inline void
 link(struct link_list *list,struct timer_node *node)
 {
@@ -72,7 +82,10 @@ link(struct link_list *list,struct timer_node *node)
 	node->next=0;
 }
 
-// 添加节点
+/// 添加节点
+/// \param[in] *T
+/// \param[in] *node
+/// \return static void
 static void
 add_node(struct timer *T,struct timer_node *node)
 {
@@ -95,7 +108,12 @@ add_node(struct timer *T,struct timer_node *node)
 	}
 }
 
-// 添加定时器
+/// 添加定时器
+/// \param[in] *T
+/// \param[in] *arg
+/// \param[in] sz
+/// \param[in] time
+/// \return static void
 static void
 timer_add(struct timer *T,void *arg,size_t sz,int time)
 {
@@ -110,6 +128,9 @@ timer_add(struct timer *T,void *arg,size_t sz,int time)
 	__sync_lock_release(&T->lock);
 }
 
+///
+/// \param[in] *T
+/// \return static void
 static void
 timer_shift(struct timer *T) {
 	int mask = TIME_NEAR;
@@ -134,7 +155,9 @@ timer_shift(struct timer *T) {
 	}	
 }
 
-// 执行定时器
+/// 执行定时器
+/// \param[in] *T
+/// \return static inline void
 static inline void
 timer_execute(struct timer *T) {
 	int idx = T->time & TIME_NEAR_MASK;
@@ -159,7 +182,9 @@ timer_execute(struct timer *T) {
 	}
 }
 
-// 更新定时器
+/// 更新定时器
+/// \param[in] *T
+/// \return static void
 static void 
 timer_update(struct timer *T)
 {
@@ -175,7 +200,8 @@ timer_update(struct timer *T)
 	__sync_lock_release(&T->lock);
 }
 
-// 创建定时器
+/// 创建定时器
+/// \return static struct timer *
 static struct timer *
 timer_create_timer()
 {
@@ -200,7 +226,11 @@ timer_create_timer()
 	return r; // 返回定时器的结构
 }
 
-// 超时
+/// 超时
+/// \param[in] handle
+/// \param[in] time
+/// \param[in] session
+/// \return int
 int
 skynet_timeout(uint32_t handle, int time, int session) {
 	if (time == 0) {
@@ -223,7 +253,9 @@ skynet_timeout(uint32_t handle, int time, int session) {
 	return session;
 }
 
-// 获得时间
+/// 获得时间
+/// \param[in] void
+/// \return static uint32_t
 static uint32_t
 _gettime(void) {
 	uint32_t t;
@@ -241,7 +273,9 @@ _gettime(void) {
 	return t; // 返回 t
 }
 
-// 更新时间
+/// 更新时间
+/// \param[in] void
+/// \return void
 void
 skynet_updatetime(void) {
 	uint32_t ct = _gettime();
@@ -255,19 +289,25 @@ skynet_updatetime(void) {
 	}
 }
 
-// 获得启动时间
+/// 获得启动时间
+/// \param[in] void
+/// \return uint32_t
 uint32_t
 skynet_gettime_fixsec(void) {
 	return TI->starttime; // 启动时间
 }
 
-// 获得时间
+/// 获得时间
+/// \param[in] void
+/// \return uint32_t
 uint32_t 
 skynet_gettime(void) {
 	return TI->current; // 当前时间
 }
 
-// 定时器初始化
+/// 定时器初始化
+/// \param[in] void
+/// \return void
 void 
 skynet_timer_init(void) {
 	TI = timer_create_timer(); // 创建定时器

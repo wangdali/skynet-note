@@ -1,8 +1,7 @@
-/**
- * @file skynet_main.c
- * @version 0.1.1
- * @todo
- */
+///
+/// \file skynet_main.c
+/// \brief 主函数
+///
 #include "skynet.h"
 
 #include "skynet_imp.h"
